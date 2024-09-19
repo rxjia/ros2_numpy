@@ -37,13 +37,14 @@ Functions for working with PointCloud2.
 
 __docformat__ = "restructuredtext en"
 
-import array
 import sys
-
-import numpy as np
-from sensor_msgs.msg import PointCloud2, PointField
+from typing import Dict
 
 from .registry import converts_from_numpy, converts_to_numpy
+
+import array
+import numpy as np
+from sensor_msgs.msg import PointCloud2, PointField
 
 # prefix to the names of dummy fields we add to get byte alignment
 # correct. this needs to not clash with any actual field names
@@ -269,3 +270,70 @@ def get_xyz_points(cloud_array, remove_nans=True, dtype=float):
 def pointcloud2_to_xyz_array(cloud_msg, remove_nans=True):
     return get_xyz_points(
         pointcloud2_to_array(cloud_msg), remove_nans=remove_nans)
+
+def pointcloud2_to_xyz_rgb(msg:PointCloud2, remove_nans=True)->Dict[str,np.ndarray]:
+    field_names = [field.name for field in msg.fields]
+    dtype_list = fields_to_dtype(msg.fields, msg.point_step)
+    # parse the cloud into an array
+    cloud_arr = np.frombuffer(msg.data, dtype_list)
+    
+    if remove_nans:
+        mask = np.isfinite(cloud_arr['x']) & \
+               np.isfinite(cloud_arr['y']) & \
+               np.isfinite(cloud_arr['z'])
+        cloud_arr = cloud_arr[mask]
+        
+    xyz=None
+    if 'x' in field_names and 'y' in field_names and 'z' in field_names:
+        xyz = np.stack([cloud_arr['x'], cloud_arr['y'], cloud_arr['z']], axis=1)
+        
+    rgb=None
+    if 'rgb' in field_names:
+        rgb = cloud_arr['rgb']
+        rgb.dtype=np.dtype([('rgb',np.uint8,3),('_',np.uint8)])
+        rgb=rgb['rgb']
+        rgb = np.array(rgb)
+        
+    elif 'rgba' in field_names:
+        rgb = cloud_arr['rgba']
+        rgb.dtype=np.dtype([('rgba',np.uint8,4),('_',np.uint8)])
+        rgb=rgb['rgba']
+        rgb = np.array(rgb)
+        
+    out={}
+    if xyz is not None:
+        out['xyz']=xyz
+    if rgb is not None:
+        out['rgb']=rgb
+    return out
+
+def xyz_rgb_to_pointcloud2(xyz:np.ndarray, rgb:np.ndarray=None, stamp=None, frame_id=None)->PointCloud2:
+    """
+    xyz: Nx3 array
+    rgb: bgr or bgra
+    """
+    # if is float64, convert to float32
+    if xyz.dtype == np.float64:
+        xyz = xyz.astype(np.float32)
+
+    if rgb is not None:
+        assert rgb.shape[0] == xyz.shape[0]
+        assert rgb.shape[1] in [3,4]
+        
+        assert rgb.dtype == np.uint8
+        if rgb.shape[1]==3:
+            bgr_dtype=[('rgb',np.float32)]
+        elif rgb.shape[1]==4:
+            bgr_dtype=[('rgba',np.float32)]
+
+        xyz_buffer = xyz.view(np.uint8)
+        bgr_buffer = rgb
+        a_buffer = np.zeros((xyz_buffer.shape[0],1), dtype=np.uint8)
+        np_arr = np.concatenate([xyz_buffer, bgr_buffer, a_buffer], axis=1)
+        np_arr.dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)]+bgr_dtype)
+    else:
+        np_arr = xyz
+        np_arr.dtype = np.dtype([('x', np.float32), ('y', np.float32), ('z', np.float32)])
+        
+    msg = array_to_pointcloud2(np_arr, stamp=stamp, frame_id=frame_id)
+    return msg
