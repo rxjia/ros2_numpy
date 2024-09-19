@@ -1,9 +1,10 @@
-from .registry import converts_from_numpy, converts_to_numpy
-from geometry_msgs.msg import Transform, Vector3, Quaternion, Point, Pose
-import tf_transformations as transformations
-from . import numpify
-
 import numpy as np
+import tf_transformations as transformations
+from geometry_msgs.msg import Point, Pose, Quaternion, Transform, Vector3
+
+from . import numpify
+from .registry import converts_from_numpy, converts_to_numpy
+
 
 # basic types
 

@@ -1,11 +1,10 @@
 from array import array as Array
-import sys
-
-from .registry import converts_from_numpy, converts_to_numpy
-from nav_msgs.msg import OccupancyGrid, MapMetaData
 
 import numpy as np
-from numpy.lib.stride_tricks import as_strided
+from nav_msgs.msg import MapMetaData, OccupancyGrid
+
+from .registry import converts_from_numpy, converts_to_numpy
+
 
 @converts_to_numpy(OccupancyGrid)
 def occupancygrid_to_numpy(msg):
