@@ -1,6 +1,6 @@
 import numpy as np
 import tf_transformations as transformations
-from geometry_msgs.msg import Point, Pose, Quaternion, Transform, Vector3
+from geometry_msgs.msg import Point, Pose, Quaternion, Transform, Vector3, Twist
 
 from . import numpify
 from .registry import converts_from_numpy, converts_to_numpy
@@ -132,3 +132,14 @@ def numpy_to_pose(arr):
                         zip(['x', 'y', 'z', 'w'],
                         transformations.quaternion_from_matrix(arr[idx]))))
             )
+
+
+@converts_to_numpy(Twist)
+def twist_to_numpy(msg:Twist)->np.ndarray:
+    return np.array([msg.linear.x, msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y, msg.angular.z])
+
+
+@converts_from_numpy(Twist)
+def numpy_to_twist(arr):
+    assert arr.shape == (6, )
+    return Twist(linear=Vector3(x=arr[0], y=arr[1], z=arr[2]), angular=Vector3(x=arr[3], y=arr[4], z=arr[5]))

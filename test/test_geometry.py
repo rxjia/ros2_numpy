@@ -3,7 +3,7 @@ import numpy as np
 import ros2_numpy as rnp
 import tf_transformations as transformations
 
-from geometry_msgs.msg import Vector3, Quaternion, Transform, Point, Pose
+from geometry_msgs.msg import Vector3, Quaternion, Transform, Point, Pose, Twist
 
 class TestGeometry(unittest.TestCase):
     def test_point(self):
@@ -81,6 +81,26 @@ class TestGeometry(unittest.TestCase):
         np.testing.assert_allclose(msg.orientation.y, t.orientation.y)
         np.testing.assert_allclose(msg.orientation.z, t.orientation.z)
         np.testing.assert_allclose(msg.orientation.w, t.orientation.w)
+    
+    def test_twist(self):
+        t = Twist(
+            linear=Vector3(x=1., y=2., z=3.),
+            angular=Vector3(x=4., y=5., z=6.)
+        )
+
+        t_arr = rnp.numpify(t)
+        np.testing.assert_allclose(t_arr, [1, 2, 3, 4, 5, 6])
+        
+        msg = rnp.msgify(Twist, t_arr)
+        np.testing.assert_allclose(msg.linear.x, t.linear.x)
+        np.testing.assert_allclose(msg.linear.y, t.linear.y)
+        np.testing.assert_allclose(msg.linear.z, t.linear.z)
+        np.testing.assert_allclose(msg.angular.x, t.angular.x)
+        np.testing.assert_allclose(msg.angular.y, t.angular.y)
+        np.testing.assert_allclose(msg.angular.z, t.angular.z)
+        
+        t_arr1 = rnp.numpify(msg)
+        np.testing.assert_allclose(t_arr1, t_arr)
 
 if __name__ == '__main__':
     unittest.main()
